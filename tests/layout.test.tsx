@@ -4,7 +4,7 @@ import { ADD, ID1, ID2, NOW, PANE, SURFACES, editAgents, inChat, openAgent, star
 
 // The person's wheel over the pane, as the engine raises it (negative toward the top).
 const wheel = ($: { ui: { scroll: (e: never) => Promise<unknown> } }, by: number) =>
-  $.ui.scroll({ component: 'Pane', requestId: 'agent-mode', offset: 0, by, bodyRows: 30, contentRows: 30, origin: { kind: 'person' } } as never)
+  $.ui.scroll({ component: 'Pane', requestId: 'agents', offset: 0, by, bodyRows: 30, contentRows: 30, origin: { kind: 'person' } } as never)
 
 // The chat's lines drawn now, in order (each found once as its Text), and whether the fixed parts are all there.
 // (Agent replies draw as Markdown; the bar's one-line previews, cut at their edge, are left out.)

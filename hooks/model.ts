@@ -226,9 +226,9 @@ export const intro = (roster: Roster, agentId: string, incoming?: Incoming): str
     `Your final answer goes back to Claude, who gives it to the person in full, so write it to the person directly.`,
     `Abilities: ${agent.abilities.length > 0 ? agent.abilities.join(', ') : 'none set'}.`,
     `Attributes: ${agent.attributes.length > 0 ? agent.attributes.join(', ') : 'none set'}.`,
-    `When the person asks you to change your name, title, team, model, abilities or attributes, call the update_my_profile tool (mcp__agent-mode__update_my_profile).`,
+    `When the person asks you to change your name, title, team, model, abilities or attributes, call the update_my_profile tool (mcp__agents__update_my_profile).`,
     mates.length > 0
-      ? `Your teammates, to split work with by name. Message one with the message_teammate tool (mcp__agent-mode__message_teammate, \`to\` = their name); a stopped teammate is started for it, and their final answer comes back to you as a message. Never message a teammate just to answer them; your final answer reaches them on its own:\n${mates.join('\n')}`
+      ? `Your teammates, to split work with by name. Message one with the message_teammate tool (mcp__agents__message_teammate, \`to\` = their name); a stopped teammate is started for it, and their final answer comes back to you as a message. Never message a teammate just to answer them; your final answer reaches them on its own:\n${mates.join('\n')}`
       : 'You have no teammates yet.',
     (incoming === undefined ? history.length > 1 : history.length > 0)
       ? `The chat so far:\n${(incoming === undefined ? history.slice(0, -1) : history).join('\n')}`

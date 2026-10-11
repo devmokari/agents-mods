@@ -4,25 +4,25 @@ import type { AgentSpawnInput, On } from 'claude-code'
 import type { Roster } from '../types'
 import { addAgent, emptyRoster } from '../hooks/model'
 
-// Shared setup for the agent-mode tests: the stand-in engine, fixtures and drawing helpers.
+// Shared setup for the agents tests: the stand-in engine, fixtures and drawing helpers.
 
 export const NOW = Date.UTC(2026, 9, 8, 12, 0, 0)
 export const SURFACES = ['terminal', 'desktop'] as const
-export const PROFILE = 'mcp__agent-mode__update_my_profile'
-export const MESSAGE = 'mcp__agent-mode__message_teammate'
-export const ADD = 'mcp__agent-mode__add_agent'
-export const BRIEF = 'mcp__agent-mode__get_briefing'
+export const PROFILE = 'mcp__agents__update_my_profile'
+export const MESSAGE = 'mcp__agents__message_teammate'
+export const ADD = 'mcp__agents__add_agent'
+export const BRIEF = 'mcp__agents__get_briefing'
 export const briefing = async ($: Engine, loop: string) => String((await $.tool.call({ tool: BRIEF, agentId: loop } as never)).result)
 
 export const PANE = {
-  plugin: 'agent-mode',
+  plugin: 'agents',
   component: 'Pane',
-  requestId: 'agent-mode',
+  requestId: 'agents',
   props: { title: 'Agents', isFocused: false, bodyColumns: 100, placement: 'dock', scroll: { offset: 0, bodyRows: 30 }, view: {} },
 } as const
 
 export const BAND = {
-  plugin: 'agent-mode',
+  plugin: 'agents',
   component: 'AbovePrompt',
   props: { hasSurvey: false, isWorking: false, maxRows: 30, bodyColumns: 100, scroll: { offset: 0, bodyRows: 29 }, view: {} },
 } as const
@@ -35,7 +35,7 @@ export const world = (on: On, saved: Roster | null = two(), isPaneOpen = false):
   const seen: World = { copies: [], opens: [], spawns: [], prompts: [], appended: [], done: new Set(), clock: mock.clock(on, { now: NOW }) }
   mock.store(on, saved === null ? {} : { roster: saved, isPaneOpen })
   on('command.register', ($, e) => ({ value: { command: e.name } }))
-  on('tool.register', ($, e) => ({ value: { tool: `mcp__agent-mode__${e.name}` } }))
+  on('tool.register', ($, e) => ({ value: { tool: `mcp__agents__${e.name}` } }))
   on('ui.open', ($, e) => {
     seen.opens.push(e.id)
     return { value: { isPlaced: true as const } }
@@ -113,7 +113,7 @@ export const complete = (agentId: string, answer: string) => ({
 
 export const card = (tool_use_id: string, name: string) =>
   ({
-    plugin: 'agent-mode',
+    plugin: 'agents',
     component: 'ToolUse',
     requestId: tool_use_id,
     props: { tool_use_id, tool: 'Agent', input: { description: `Team member: ${name}`, prompt: 'intro' }, isRunning: false, isErrored: false, isInterrupted: false },
@@ -164,7 +164,7 @@ export const LIVE_WRAPPED = [
 ].join('\n')
 
 export const row = (text: string, origin: object, isExpanded: boolean, surface: 'desktop' | 'terminal') => ({
-  plugin: 'agent-mode',
+  plugin: 'agents',
   component: 'UserMessage' as const,
   props: { text, origin, isExpanded } as never,
   surface,

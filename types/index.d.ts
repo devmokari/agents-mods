@@ -55,7 +55,7 @@ export type Run = {
 
 declare module 'claude-code' {
   interface PluginState {
-    'agent-mode': {
+    'agents': {
       roster: Roster
       /** The agent open in the Agents inbox; null before the person picks one. */
       selected: string | null

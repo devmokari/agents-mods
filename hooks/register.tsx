@@ -9,27 +9,27 @@ import { BRIEF_SCHEMA, BRIEF_TOOL, activityOf, addStep, answerAsk, askToDeliver,
 import { ADD_TOOL, AGENT_TOOL, BUSY, CARD, COMMAND, MESSAGE_TOOL, PANE, PHOTO_TOOL, PROFILE_TOOL, TITLE, asSeqText, clientBase, clientCopied, clientDrafts, clientGen, clientInflight, clientKey, clientResolved, clientSeq, composerProps, isClientUsable, sending } from './state'
 
 // State the hooks and drawings read; declared here, where the engine's scan lists what the plugin keeps.
-const roster = atom({ plugin: 'agent-mode', key: 'roster' } as const, emptyRoster())
-const selected = atom({ plugin: 'agent-mode', key: 'selected' } as const, null)
-const isPaneOpen = atom({ plugin: 'agent-mode', key: 'isPaneOpen' } as const, false)
-const runs = atom({ plugin: 'agent-mode', key: 'runs' } as const, {} as Record<string, string>)
-const asks = atom({ plugin: 'agent-mode', key: 'asks' } as const, {} as Asks)
-const history = atom({ plugin: 'agent-mode', key: 'history' } as const, {} as Record<string, Run>)
-const cards = atom({ plugin: 'agent-mode', key: 'cards' } as const, {} as Record<string, string>)
-const confirming = atom({ plugin: 'agent-mode', key: 'confirming' } as const, null)
-const isManaging = atom({ plugin: 'agent-mode', key: 'isManaging' } as const, false)
-const drafts = atom({ plugin: 'agent-mode', key: 'drafts' } as const, {} as Record<string, string>)
-const sendErrors = atom({ plugin: 'agent-mode', key: 'sendErrors' } as const, {} as Record<string, string>)
-const briefs = atom({ plugin: 'agent-mode', key: 'briefs' } as const, {} as Record<string, string>)
-const manageErrors = atom({ plugin: 'agent-mode', key: 'manageErrors' } as const, {} as Record<string, string>)
-const editing = atom({ plugin: 'agent-mode', key: 'editing' } as const, null as string | null)
-const listFilter = atom({ plugin: 'agent-mode', key: 'listFilter' } as const, '')
-const isSearching = atom({ plugin: 'agent-mode', key: 'isSearching' } as const, false)
-const expanded = atom({ plugin: 'agent-mode', key: 'expanded' } as const, {} as Record<string, true>)
-const menuOpen = atom({ plugin: 'agent-mode', key: 'menuOpen' } as const, null as string | null)
-const renaming = atom({ plugin: 'agent-mode', key: 'renaming' } as const, null as string | null)
-const isAdding = atom({ plugin: 'agent-mode', key: 'isAdding' } as const, false)
-const historyBack = atom({ plugin: 'agent-mode', key: 'historyBack' } as const, {} as Record<string, number>)
+const roster = atom({ plugin: 'agents', key: 'roster' } as const, emptyRoster())
+const selected = atom({ plugin: 'agents', key: 'selected' } as const, null)
+const isPaneOpen = atom({ plugin: 'agents', key: 'isPaneOpen' } as const, false)
+const runs = atom({ plugin: 'agents', key: 'runs' } as const, {} as Record<string, string>)
+const asks = atom({ plugin: 'agents', key: 'asks' } as const, {} as Asks)
+const history = atom({ plugin: 'agents', key: 'history' } as const, {} as Record<string, Run>)
+const cards = atom({ plugin: 'agents', key: 'cards' } as const, {} as Record<string, string>)
+const confirming = atom({ plugin: 'agents', key: 'confirming' } as const, null)
+const isManaging = atom({ plugin: 'agents', key: 'isManaging' } as const, false)
+const drafts = atom({ plugin: 'agents', key: 'drafts' } as const, {} as Record<string, string>)
+const sendErrors = atom({ plugin: 'agents', key: 'sendErrors' } as const, {} as Record<string, string>)
+const briefs = atom({ plugin: 'agents', key: 'briefs' } as const, {} as Record<string, string>)
+const manageErrors = atom({ plugin: 'agents', key: 'manageErrors' } as const, {} as Record<string, string>)
+const editing = atom({ plugin: 'agents', key: 'editing' } as const, null as string | null)
+const listFilter = atom({ plugin: 'agents', key: 'listFilter' } as const, '')
+const isSearching = atom({ plugin: 'agents', key: 'isSearching' } as const, false)
+const expanded = atom({ plugin: 'agents', key: 'expanded' } as const, {} as Record<string, true>)
+const menuOpen = atom({ plugin: 'agents', key: 'menuOpen' } as const, null as string | null)
+const renaming = atom({ plugin: 'agents', key: 'renaming' } as const, null as string | null)
+const isAdding = atom({ plugin: 'agents', key: 'isAdding' } as const, false)
+const historyBack = atom({ plugin: 'agents', key: 'historyBack' } as const, {} as Record<string, number>)
 
 // The chat the filled pane last drew with its own scrolling: whose, its rows' estimated heights and the window's rows,
 // for the `ui.scroll` hook to move. Undefined while the pane scrolls natively (tiled, Edit agents).
@@ -123,6 +123,28 @@ async function handOver(
   }
 
   return handover(all, id, isRunning, text, relay)
+}
+
+// The roster this plugin saved while it was named agent-mode (its store files, `agent-mode_*.json`, beside this
+// plugin's own): the fullest one, or none.
+async function legacyRoster($: EngineInterface): Promise<Roster | undefined> {
+  const home = await $.env.get('HOME').catch(() => undefined)
+  if (home === undefined || home === '') return undefined
+  const dir = `${home}/.claude/plugins/store`
+  const entries = await $.fs.list(dir).catch(() => [])
+  let best: Roster | undefined
+  for (const entry of entries) {
+    if (entry.kind !== 'file' || !entry.name.startsWith('agent-mode_') || !entry.name.endsWith('.json')) continue
+    const text = await $.fs.read(`${dir}/${entry.name}`).catch(() => undefined)
+    let found: unknown
+    try {
+      found = typeof text === 'string' ? (JSON.parse(text) as { roster?: unknown }).roster : undefined
+    } catch {
+      found = undefined
+    }
+    if (isRoster(found) && (best === undefined || found.agents.length > best.agents.length)) best = renameLegacyTeam(found)
+  }
+  return best
 }
 
 async function save($: EngineInterface, change: (all: Roster) => Roster): Promise<Roster> {
@@ -284,13 +306,20 @@ export const register: Register = on => {
   let isDraining = false
 
   on('session.start', async ($, e, next) => {
-    const held = await $.state.get({ plugin: 'agent-mode', key: 'roster' } as const)
+    const held = await $.state.get({ plugin: 'agents', key: 'roster' } as const)
     if (held.version === 0) {
       const saved = await $.store.get('roster')
       if (isRoster(saved)) {
         const renamed = renameLegacyTeam(saved)
         await update($, roster, () => renamed)
         if (renamed !== saved) await $.store.set('roster', renamed)
+      } else {
+        // First start under the plugin's new name: the agents and chats saved under the old one come across once.
+        const legacy = await legacyRoster($)
+        if (legacy !== undefined) {
+          await update($, roster, () => legacy)
+          await $.store.set('roster', legacy)
+        }
       }
     }
     await $.command.register({ name: COMMAND, description: 'Open the Agents inbox' })
@@ -1056,7 +1085,7 @@ export const register: Register = on => {
     )
   }).catch(($, e, next) => {
     const { Text } = $.ui.resolve(e)
-    return <Text color="red">agent-mode could not draw the inbox ({next.error?.kind}): {next.error?.message ?? 'no message'}</Text>
+    return <Text color="red">agents could not draw the inbox ({next.error?.kind}): {next.error?.message ?? 'no message'}</Text>
   })
 
 
@@ -1102,10 +1131,11 @@ export const register: Register = on => {
   // plugin's own tree (the path the work card proves the desktop draws). The stored message is untouched; the
   // terminal's ctrl+o still shows it all. Each sighting is recorded in the store under `renderSeen` (the last 10),
   // so a live run says whether the surface raised the row at all and what it was handed.
-  const FRAME = 'The agent-mode plugin sent a message:'
+  const FRAME = 'The agents plugin sent a message:'
+  const OLD_FRAME = 'The agent-mode plugin sent a message:'
   on('ui.render', { component: 'UserMessage' }, async ($, e, next) => {
     const origin = e.props.origin
-    const isOurs = (origin.kind === 'plugin' && origin.name === 'agent-mode') || e.props.text.trimStart().startsWith(FRAME)
+    const isOurs = (origin.kind === 'plugin' && (origin.name === 'agents' || origin.name === 'agent-mode')) || e.props.text.trimStart().startsWith(FRAME) || e.props.text.trimStart().startsWith(OLD_FRAME)
     const name = isOurs ? handoverTarget(e.props.text) : undefined
     const isPassed = name === undefined || (e.props.isExpanded && e.surface === 'terminal')
     if (isOurs) {

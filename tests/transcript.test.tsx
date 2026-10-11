@@ -8,9 +8,9 @@ test("the handover row in Claude's chat shows one line naming the agent", async 
   await start($)
   const text = handover(two(), ID1, false, '', 'inbox')
   const row = await $.ui.mount({
-    plugin: 'agent-mode',
+    plugin: 'agents',
     component: 'UserMessage',
-    props: { text, origin: { kind: 'plugin', name: 'agent-mode' }, isExpanded: false } as never,
+    props: { text, origin: { kind: 'plugin', name: 'agents' }, isExpanded: false } as never,
     surface: 'desktop',
   })
   expect(await row.find({ text: /Sent to Agent 1 from the Agents inbox/ })).toBeDefined()
@@ -19,7 +19,7 @@ test("the handover row in Claude's chat shows one line naming the agent", async 
 test('the live wrapped handover row collapses to one line; unrelated rows and the terminal expanded view do not', async ($, on) => {
   world(on)
   await start($)
-  const mine = { kind: 'plugin', name: 'agent-mode' }
+  const mine = { kind: 'plugin', name: 'agents' }
   for (const isExpanded of [false, true]) {
     const shownRow = await $.ui.mount(row(LIVE_WRAPPED, mine, isExpanded, 'desktop'))
     expect(await shownRow.find({ text: /^Sent to Builder from the Agents inbox$/ })).toBeDefined()

@@ -1,6 +1,6 @@
 // The plugin's constants, state atoms, palette and the desktop composer's bookkeeping: nothing here touches `$`.
 
-export const PANE = 'agent-mode'
+export const PANE = 'agents'
 export const TITLE = 'Agents'
 export const COMMAND = 'faces'
 
@@ -40,10 +40,10 @@ export const composerProps = (id: string, name: string) => ({
 
 export const BUSY = 'Your previous message to this agent is still being sent.'
 
-export const PROFILE_TOOL = 'mcp__agent-mode__update_my_profile'
-export const MESSAGE_TOOL = 'mcp__agent-mode__message_teammate'
-export const ADD_TOOL = 'mcp__agent-mode__add_agent'
-export const PHOTO_TOOL = 'mcp__agent-mode__set_agent_photo'
+export const PROFILE_TOOL = 'mcp__agents__update_my_profile'
+export const MESSAGE_TOOL = 'mcp__agents__message_teammate'
+export const ADD_TOOL = 'mcp__agents__add_agent'
+export const PHOTO_TOOL = 'mcp__agents__set_agent_photo'
 export const AGENT_TOOL = 'Agent'
 
 // The palette works in light and dark themes: text in theme keys, which follow the person's theme, and fills as

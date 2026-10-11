@@ -1,4 +1,4 @@
-# agent-mode
+# agents
 
 A Claude Code mod: named subagents with photos, each with its own chat in an Agents inbox beside the main chat.
 
@@ -29,10 +29,10 @@ A Claude Code mod: named subagents with photos, each with its own chat in an Age
 
 ## Install or update
 
-    claude plugin marketplace add ~/agent-mode
-    claude plugin install agent-mode@agents-mods
+    claude plugin marketplace add devmokari/agents-mods      # or a local clone: ~/agent-mode
+    claude plugin install agents@mods
 
-After a change: bump `version` in `.claude-plugin/plugin.json`, then run `claude plugin marketplace update agents-mods` and `claude plugin update agent-mode@agents-mods`, and restart Claude. `/reload-plugins` alone does not pick up edits.
+After a change: bump `version` in `.claude-plugin/plugin.json`, then run `claude plugin marketplace update mods` and `claude plugin update agents@mods`, and restart Claude. `/reload-plugins` alone does not pick up edits.
 
 ## Check
 

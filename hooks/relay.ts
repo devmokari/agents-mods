@@ -32,7 +32,7 @@ export const handover = (roster: Roster, agentId: string, isRunning: boolean, te
   ].join('\n')
 }
 
-export const BRIEF_TOOL = 'mcp__agent-mode__get_briefing'
+export const BRIEF_TOOL = 'mcp__agents__get_briefing'
 export const BRIEF_SCHEMA = { type: 'object', properties: {}, additionalProperties: false } as const
 
 const short = (text: string, length: number): string => (text.length > length ? `${text.slice(0, length - 1)}…` : text)
@@ -56,9 +56,9 @@ export const stepText = (tool: string, input: Record<string, unknown>): string =
       return `Searching the web for "${short(String(input.query ?? ''), 48)}"`
     case 'WebFetch':
       return `Reading ${short(String(input.url ?? '').replace(/^https?:\/\//, ''), 48)}`
-    case 'mcp__agent-mode__message_teammate':
+    case 'mcp__agents__message_teammate':
       return `Messaging ${String(input.to ?? 'a teammate')}`
-    case 'mcp__agent-mode__update_my_profile':
+    case 'mcp__agents__update_my_profile':
       return 'Updating its profile'
     default:
       return `Using ${tool.replace(/^mcp__[^_]+__/, '')}`
@@ -104,7 +104,7 @@ export const reportPath = (cwd: string, name: string, at: number): string =>
 // The agent a handover names: what the Agents inbox shows in place of the long handover row in the main chat.
 // The host stores a plugin's prompt behind its own frame ("The agent-mode plugin sent a message:"), so that frame may lead.
 export const handoverTarget = (text: string): string | undefined =>
-  /^(?:The agent-mode plugin sent a message:\s*)?Agent mode: (?:start my teammate (.+?)\. Call|pass this message to my teammate (.+?), who is running)/
+  /^(?:The (?:agents|agent-mode) plugin sent a message:\s*)?Agent mode: (?:start my teammate (.+?)\. Call|pass this message to my teammate (.+?), who is running)/
     .exec(text.trimStart())
     ?.slice(1)
     .find(Boolean)

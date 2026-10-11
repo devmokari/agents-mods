@@ -45,7 +45,7 @@ test('the inbox reopens only if it was left open; while closed, the band offers 
   const band = await $.ui.mount({ ...BAND, surface: 'desktop' })
   expect(await band.find({ key: 'pick:claude' })).toBeUndefined()
   await band.press({ key: 'inbox' })
-  expect(seen.opens).toEqual(['agent-mode'])
+  expect(seen.opens).toEqual(['agents'])
   expect(await band.find({ key: 'inbox' })).toBeUndefined()
   expect(await band.find({ text: /engine AbovePrompt/ })).toBeDefined()
 })
@@ -53,7 +53,7 @@ test('the inbox reopens only if it was left open; while closed, the band offers 
 test('a saved open inbox opens again at session start', async ($, on) => {
   const seen = world(on, two(), true)
   await start($)
-  expect(seen.opens).toEqual(['agent-mode'])
+  expect(seen.opens).toEqual(['agents'])
 })
 
 test('the inbox lists agents by team and keeps each conversation to its own agent', async ($, on) => {
@@ -93,7 +93,7 @@ test('sending from the inbox reaches the agent it was written to, even after the
   // The handover Claude's chat shows is a few lines; the history and the message wait in the briefing.
   expect(handover.split('\n').length).toBeLessThanOrEqual(5)
   expect(handover).not.toContain('The chat so far')
-  expect(handover).toContain('call get_briefing (mcp__agent-mode__get_briefing)')
+  expect(handover).toContain('call get_briefing (mcp__agents__get_briefing)')
   expect(await ui.find({ text: /^Audit the homepage$/ })).toBeDefined()
 
   // The person moves to Agent 2 while Agent 1 works.
