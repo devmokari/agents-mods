@@ -38,3 +38,7 @@ After a change: bump `version` in `.claude-plugin/plugin.json`, then run `claude
 
     claude plugin validate .
     claude plugin test .
+
+## Licence
+
+MIT, see [LICENSE](LICENSE).
