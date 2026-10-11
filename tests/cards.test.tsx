@@ -1,6 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 import { addAgent, appendLine, sendLine } from '../hooks/model'
-import { ID1, ID2, MESSAGE, NOW, PANE, SURFACES, canOpen, claudeStarts, complete, openAgent, portrait, start, two, typeInto, world } from './world'
+import { ID1, ID2, MESSAGE, NOW, PANE, SURFACES, editAgents, canOpen, claudeStarts, complete, openAgent, portrait, start, two, typeInto, world } from './world'
 
 test('/faces reports the version the manifest says', async ($, on) => {
   world(on)
@@ -109,7 +109,9 @@ test('+ then Edit agents opens the settings: Name, Title, Team, Model and List r
   expect(labels.every(at => at > -1)).toBe(true)
   expect([...labels].sort((a, b) => a - b)).toEqual(labels)
   expect(drawn.indexOf(`delete:${ID2}`)).toBeGreaterThan(labels.at(-1)!)
-  expect((await ui.findAll({ type: 'Box', width: 7 } as never)).length).toBeGreaterThanOrEqual(5)
+  // Team, Model and List sit beside their labels; the desktop's name and title fields are stacked under theirs.
+  expect((await ui.findAll({ type: 'Box', width: 7 } as never)).length).toBeGreaterThanOrEqual(3)
+  expect(await ui.find({ type: 'Client', key: `rename:${ID2}`, width: '100%' } as never)).toBeDefined()
   await ui.press({ key: `edit:${ID2}` })
   expect(await ui.find({ key: `model:${ID2}` })).toBeUndefined()
   await ui.press({ key: 'done' })
@@ -169,7 +171,7 @@ test('filled layout: chat full width above the bottom agent bar; tinted picked c
   const drawn = JSON.stringify(await ui.drawn())
   expect(drawn.slice(drawn.indexOf(`"key":"row-${ID2}"`)).indexOf('"hover":{"backgroundColor":"#8a8f9824"')).toBeLessThan(400)
   expect(boxes.some(one => one.props.key === `tag-${ID1}`)).toBe(false)
-  // No side list: the agents sit in a bar after the chat, search and + first, cards of fixed width that wrap.
+  // No side list: the agents sit in a bar after the chat, search and + first, then teams of fixed-width cards that wrap.
   expect(boxes.find(one => one.props.key === 'list')).toBeUndefined()
   const order = JSON.stringify(await ui.drawn())
   expect(order.indexOf('"agent-bar"')).toBeGreaterThan(order.indexOf(`compose:${ID1}`))
@@ -178,7 +180,9 @@ test('filled layout: chat full width above the bottom agent bar; tinted picked c
   expect(boxes.find(one => one.props.key === 'bar-cards')?.props.flexWrap).toBe('wrap')
   // Near the mock's 235px card: 26 cells.
   expect(boxes.find(one => one.props.key === `agent-${ID1}`)?.props.width).toBe(26)
-  expect(await ui.find({ text: /^TEAM$/ })).toBeUndefined()
+  // Each team under its heading, its people as cards inside it.
+  expect(await ui.find({ text: /^TEAM$/ })).toBeDefined()
+  expect(order.indexOf(`"agent-${ID1}"`)).toBeGreaterThan(order.indexOf('"bar-group-Team"'))
   expect(boxes.find(one => one.props.key === 'chat-frame')?.props.borderStyle).toBeUndefined()
   // No divider or capsule drawings: neither drew live; the header pill keeps the native rounded frame.
   expect(boxes.some(one => one.props.key === 'divider' || one.props.key === 'pill-capsule')).toBe(false)
@@ -408,4 +412,20 @@ test('photos at the mock sizes: 44px in the list, 32px in the pill, each in a bo
   expect([photo?.width, photo?.height, photo?.flexShrink]).toEqual([6, 3, 0])
   const pill = boxes.find(one => one.props.key === 'pill-photo')?.props
   expect([pill?.width, pill?.height]).toEqual([5, 2])
+})
+
+test('a Save button stores what is typed in the name and title fields, wide desktop Edit panel', async ($, on) => {
+  world(on)
+  await start($)
+  const ui = await $.ui.mount({ ...PANE, surface: 'desktop' })
+  await editAgents(ui)
+  await ui.press({ key: `edit:${ID2}` })
+  for (const [box, words] of [[`rename:${ID2}`, 'Chen'], [`retitle:${ID2}`, 'Tech Lead']] as const) {
+    await ui.resize({ columns: 40, rows: 3, in: box } as never)
+    await ui.pointer({ type: 'down', x: 2, y: 0, button: 'left', in: box } as never)
+    for (const key of words) await ui.key({ key: key === ' ' ? 'space' : key, in: box } as never)
+  }
+  await ui.press({ key: `save-fields:${ID2}` })
+  expect(await ui.find({ text: /^Chen$/ })).toBeDefined()
+  expect(await ui.find({ text: /Tech Lead · Team · sonnet/ })).toBeDefined()
 })

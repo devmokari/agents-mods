@@ -61,8 +61,8 @@ test('the inbox lists agents by team and keeps each conversation to its own agen
   await start($)
   for (const surface of SURFACES) {
     const ui = await $.ui.mount({ ...PANE, surface })
-    // The filled pane's bottom bar has no group headings; the tiled list keeps them, in small capitals.
-    expect(await ui.find({ text: /^TEAM$/ })).toBeUndefined()
+    // The filled pane's bottom bar groups people under their team's heading, in small capitals, as the tiled list does.
+    expect(await ui.find({ text: /^TEAM$/ })).toBeDefined()
     expect(await canOpen(ui, ID1)).toBe(true)
     expect(await canOpen(ui, ID2)).toBe(true)
     // The first agent is open until the person picks another.

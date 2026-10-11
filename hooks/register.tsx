@@ -52,6 +52,9 @@ const ADD_ICON = '\uFF0B'
 // The agent whose chat the filled pane drew with an unread count, for the session's timer to mark read: a render
 // cannot write state itself (a write it starts does not land), so it leaves the id here.
 let seenUnread: string | undefined
+// Set when the filled chat is drawn with its pane scrolled down (switching from tile, which scrolls natively, can leave
+// it there): the session's timer scrolls the pane back to its top, since a render cannot scroll it itself.
+let needsTop = false
 
 // The panel agent a subagent loop belongs to: recorded at its start, else found by its description.
 async function panelOf($: EngineInterface, loop: string): Promise<string | undefined> {
@@ -330,6 +333,10 @@ export const register: Register = on => {
       const seen = seenUnread
       seenUnread = undefined
       if (seen !== undefined && isFilled) void save($, all => markRead(all, seen)).catch(() => undefined)
+      // The filled chat was drawn with its pane scrolled down (left there by the tiled list, or by the pane following
+      // its end as the tree grew): put it back at the top, where the pill, history, composer and bar fit the screen.
+      if (needsTop && filledChat !== undefined) void $.ui.scroll({ to: 'start', in: PANE }).catch(() => undefined)
+      needsTop = false
       if (isDraining || outbox.length === 0) return
       isDraining = true
       void (async () => {
@@ -407,16 +414,20 @@ export const register: Register = on => {
 
     // A labelled field row in Manage agents: every label the same width, so the controls line up; in a narrow pane the
     // label sits above its control, which then has the panel's whole width.
-    const field = (key: string, label: string, control: unknown) => (
-      <Box key={key} flexDirection={isWide ? 'row' : 'column'} gap={isWide ? 1 : 0} alignItems={isWide ? 'center' : 'stretch'}>
-        <Box width={isWide ? 7 : undefined} flexShrink={0}>
-          <Text color={CARD.secondary}>{label}</Text>
+    // A plugin text field is always stacked: beside a label, its 100% width ran past the panel and hid its ✓ (live).
+    const field = (key: string, label: string, control: unknown, isStacked = false) => {
+      const isBeside = isWide && !isStacked
+      return (
+        <Box key={key} flexDirection={isBeside ? 'row' : 'column'} gap={isBeside ? 1 : 0} alignItems={isBeside ? 'center' : 'stretch'}>
+          <Box width={isBeside ? 7 : undefined} flexShrink={0}>
+            <Text color={CARD.secondary}>{label}</Text>
+          </Box>
+          <Box flexGrow={1} flexShrink={1} width={isBeside ? undefined : '100%'}>
+            {control as never}
+          </Box>
         </Box>
-        <Box flexGrow={1} flexShrink={1} width={isWide ? undefined : '100%'}>
-          {control as never}
-        </Box>
-      </Box>
-    )
+      )
+    }
 
     // A text field for Manage agents. The desktop's own Input keeps a fixed width that runs past a narrow panel, so
     // there the plugin's full-width field is used (Enter or ✓ saves); elsewhere the surface's Input.
@@ -436,8 +447,24 @@ export const register: Register = on => {
     // One agent's Edit panel: name, title, team, model and pin, the same spacing for each; Delete set apart below.
     const editPanel = (one: Agent) => (
       <Box key={`edit-${one.id}`} flexDirection="column" gap={1} marginTop={1} paddingX={1} borderStyle="round" borderColor={CARD.border}>
-        {field('name', 'Name', textField(`rename:${one.id}`, one.name, value => saveField($, one.id, 'name', value)))}
-        {field('title', 'Title', textField(`retitle:${one.id}`, one.title || 'No title', value => saveField($, one.id, 'title', value)))}
+        {field('name', 'Name', textField(`rename:${one.id}`, one.name, value => saveField($, one.id, 'name', value)), isDesktopClient && isClientUsable(`rename:${one.id}`))}
+        {field('title', 'Title', textField(`retitle:${one.id}`, one.title || 'No title', value => saveField($, one.id, 'title', value)), isDesktopClient && isClientUsable(`retitle:${one.id}`))}
+        {isDesktopClient && (
+          // Enter or ✓ saves one field; this saves whatever is typed in both, for anyone who looks for a Save button.
+          <Box key="save-fields" flexDirection="row">
+            <Button
+              key={`save-fields:${one.id}`}
+              plain
+              label="Save name and title"
+              onPress={async () => {
+                const name = (clientDrafts[`rename:${one.id}`] ?? '').trim()
+                const title = (clientDrafts[`retitle:${one.id}`] ?? '').trim()
+                if (name !== '') await saveField($, one.id, 'name', name)
+                if (title !== '') await saveField($, one.id, 'title', title)
+              }}
+            />
+          </Box>
+        )}
         {'Select' in ui &&
           field(
             'team',
@@ -802,15 +829,21 @@ export const register: Register = on => {
       </Box>
     )
 
-    // Filled: the mock's bottom agent bar, below the chat: search and + first, then every agent as a card of fixed width,
-    // in list order with no group headings. The host has no horizontal scroll, so cards wrap onto more lines.
-    const barAgents = shownSections.flatMap(section => section.agents)
+    // Filled: the bottom agent bar, below the chat: search and + first, then each team under its small grey heading with
+    // its people as cards of fixed width. The host has no horizontal scroll, so teams and cards wrap onto more lines.
     const bar = (
       <Box key="agent-bar" flexDirection="column" paddingX={1} paddingY={isGraphic ? 1 : 0} borderStyle={isGraphic ? 'round' : 'single'} borderColor={CARD.border} backgroundColor={isGraphic ? CARD.panel : undefined}>
         <Box key="bar-row" flexDirection="row" gap={2} alignItems="flex-start">
           {toolButtons}
-          <Box key="bar-cards" flexDirection="row" flexWrap="wrap" columnGap={1} flexGrow={1} flexShrink={1}>
-            {barAgents.map(one => card(one, BAR_CARD_COLUMNS))}
+          <Box key="bar-cards" flexDirection="row" flexWrap="wrap" columnGap={3} rowGap={1} flexGrow={1} flexShrink={1}>
+            {shownSections.map(section => (
+              <Box key={`bar-group-${section.title}`} flexDirection="column" flexShrink={1}>
+                <Text color={CARD.secondary}>{section.title.toUpperCase()}</Text>
+                <Box flexDirection="row" flexWrap="wrap" columnGap={1}>
+                  {section.agents.map(one => card(one, BAR_CARD_COLUMNS))}
+                </Box>
+              </Box>
+            ))}
           </Box>
         </Box>
         {toolPanels}
@@ -985,6 +1018,7 @@ export const register: Register = on => {
     isFilled = isWide
     const shownAgent = isWide && !isManagingNow ? agent : undefined
     seenUnread = shownAgent !== undefined && unreadOf(shownAgent) > 0 ? shownAgent.id : undefined
+    needsTop = isOwnScroll && (e.props.scroll?.offset ?? 0) > 0
     // Filled with a chat, the screen is exactly the pane's height: the pill at the top, the history's window between,
     // the composer and the bar at the bottom, and only the history moves (see the `ui.scroll` hook). Filled with
     // Edit agents, it is at least the pane's height and scrolls natively; tiled, the list scrolls natively.

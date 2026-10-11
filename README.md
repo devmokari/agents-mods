@@ -2,7 +2,7 @@
 
 A Claude Code mod: named subagents with photos, each with its own chat in an Agents inbox beside the main chat.
 
-- `/faces` opens the inbox. Tiled (under 70 columns) it is the agent list alone; filled, the picked agent's chat runs full width above a bottom agent bar (search and + first, then a card per agent; cards wrap onto more lines, since the host has no horizontal scroll). Pick an agent, type, send; Claude starts it and the answer lands in its chat.
+- `/faces` opens the inbox. Tiled (under 70 columns) it is the agent list alone; filled, the picked agent's chat runs full width above a bottom agent bar (search and + first, then each team under its heading with a card per person; teams and cards wrap onto more lines, since the host has no horizontal scroll). Pick an agent, type, send; Claude starts it and the answer lands in its chat.
 - Each row: portrait, name, last message (20 characters, then `...`) and a green unread count. Unread clears only when the chat is on screen in the filled pane.
 - **⌕** searches; **+** adds a new agent or opens **Edit agents** (title, team, model, pin, teams). Each agent's **⋯** has Rename and Delete (Delete asks first).
 - Colours use theme keys and translucent tints, so light and dark themes both read.
