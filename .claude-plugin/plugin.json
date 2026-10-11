@@ -1,0 +1,9 @@
+{
+  "name": "agent-mode",
+  "version": "0.1.58",
+  "description": "An Agents inbox beside the chat: named subagents by team, each with its own conversation and composer.",
+  "types": "./types/index.d.ts",
+  "author": {
+    "name": "devmokari"
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "name": "agents-mods",
+  "owner": { "name": "devmokari" },
+  "description": "devmokari's Claude Code mods.",
+  "plugins": [{ "name": "agent-mode", "source": "./" }]
+}
